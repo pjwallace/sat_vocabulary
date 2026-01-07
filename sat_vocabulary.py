@@ -52,37 +52,40 @@ class VocabularyApp(tk.Tk):
         style = ttk.Style()
         style.configure(
             "Word.TLabel",
-            font=("Segoe UI", 16, "bold"),
+            font=("Segoe UI", 28, "bold"),
             foreground="#1f4fd8"   # deep blue
         )
-        style.configure(
-            "AnswerLabel.TLabel", 
-            font=("Segoe UI", 13, "bold")
-        )
+        #style.configure(
+        #    "AnswerLabel.TLabel", 
+        #    font=("Segoe UI", 13, "bold")
+        #)
                 
         # Title
         title = ttk.Label(container, text="SAT Vocabulary Practice", font=("Segoe UI", 16, "bold"))
-        title.pack(anchor="w", pady=(0, 10))
+        title.pack(pady=(0, 14))
 
         # Word display
         word_frame = ttk.Frame(container)
-        word_frame.pack(fill="x", pady=(0, 10))
-
-        ttk.Label(word_frame, text="Word:", font=("Segoe UI", 11, "bold")).pack(side="left")
+        word_frame.pack(pady=(0, 12))
+       
         self.word_label = ttk.Label(word_frame, text="", style="Word.TLabel")
-        self.word_label.pack(side="left", padx=(8, 0))
-
+        self.word_label.pack()
+        
         # Student answer
-        ttk.Label(container, text="Type the meaning (not graded):", style="AnswerLabel.TLabel").pack(anchor="w", pady=(6, 4))
-        self.answer_entry = tk.Entry(container, font=("Segoe UI", 14))
-        self.answer_entry.pack(fill="x", pady=(0, 10), ipady=6)
+        ttk.Label(container, text="Type your answer", font=("Segoe UI", 11)).pack(pady=(6, 2))
+        self.answer_entry = tk.Entry(container, font=("Segoe UI", 14), width=40)
+        self.answer_entry.pack(pady=(0, 14), ipady=6)
 
         # Buttons
         btn_frame = ttk.Frame(container)
-        btn_frame.pack(fill="x", pady=(18, 16))
+        btn_frame.pack(pady=(22, 18))
+
+        # wrapping the buttons in an inner frame
+        inner = ttk.Frame(btn_frame)
+        inner.pack()
 
         self.submit_btn = tk.Button(
-                btn_frame, 
+                inner, 
                 text="Submit", 
                 font=("Segoe UI", 13, "bold"), 
                 bg="#1f4fd8",        # blue
@@ -96,45 +99,41 @@ class VocabularyApp(tk.Tk):
         self.submit_btn.pack(side="left")
 
         self.next_btn = tk.Button(
-            btn_frame,
+            inner,
             text="Next Word", 
             font=("Segoe UI", 13, "bold"),
-            bg="#e0e0e0",        # neutral gray
-            fg="black",
-            activebackground="#cfcfcf",
+            bg="#f4f6f8",   # soft slate
+            fg="#333333",
+            activebackground="#e6e9ed",
             padx=14,
             pady=6, 
             command=self.next_word
         )
-        self.next_btn.pack(side="left", padx=(12, 0))
+        self.next_btn.pack(side="left", padx=(18, 0))
 
         # Definition reveal
-        ttk.Label(container, text="Correct meaning:", font=("Segoe UI", 13, "bold")).pack(anchor="w", pady=(6, 4))
-        self.definition_box = tk.Text(container, height=2, wrap="word")
-        # Force font explicitly
-        self.definition_box.configure(font=("Segoe UI", 14))
-        self.definition_box.configure(
+        self.definition_label = tk.Label(
+            container,
+            text="",
+            font=("Segoe UI", 14),
             bg="#f6f6f6",
-            fg="#333333",
-            relief="flat"
+            fg="#2c3e50",        # slate/navysteel blue emphasis
+            wraplength=720,      # tuned for 865px window; adjust if needed
+            justify="center",
+            padx=12,
+            pady=10
         )
-        self.definition_box.configure(
-            padx=6,
-            pady=6
-        )       
-        self.definition_box.pack(fill="x", pady=(0, 10))
-        self.definition_box.configure(state="disabled")
+        self.definition_label.pack(pady=(12, 12))
 
         # Allow pressing Enter to submit
         self.bind("<Return>", lambda event: self.submit_answer())
 
     def _set_definition_text(self, text):
-            self.definition_box.configure(state="normal")
-            self.definition_box.delete("1.0", "end")
-            self.definition_box.insert("end", text)
-            self.definition_box.configure(state="disabled")
+        self.definition_label.configure(text=text)
 
     def next_word(self):
+        self._set_definition_text("")
+
         line = random.choice(self.lines)
         word, definition = line.split(None, 1)
 
