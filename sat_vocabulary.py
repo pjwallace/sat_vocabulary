@@ -33,6 +33,8 @@ class VocabularyApp(tk.Tk):
         self.lines = lines
         self.current_word = ""
         self.current_definition = ""
+        self.words_attempted = 0
+        self.total_words = len(self.lines)
 
         # create the user interface. Helper method for use inside the class
         self._build_ui()
@@ -42,6 +44,7 @@ class VocabularyApp(tk.Tk):
             self.submit_btn.configure(state="disabled")
             self.next_btn.configure(state="disabled")
         else:
+            self._update_counter()
             self.next_word()
 
     def _build_ui(self):
@@ -52,29 +55,25 @@ class VocabularyApp(tk.Tk):
         style = ttk.Style()
         style.configure(
             "Word.TLabel",
-            font=("Segoe UI", 28, "bold"),
+            font=("Segoe UI", 30, "bold"),
             foreground="#1f4fd8"   # deep blue
         )
-        #style.configure(
-        #    "AnswerLabel.TLabel", 
-        #    font=("Segoe UI", 13, "bold")
-        #)
-                
+                        
         # Title
         title = ttk.Label(container, text="SAT Vocabulary Practice", font=("Segoe UI", 16, "bold"))
-        title.pack(pady=(0, 14))
+        title.pack(pady=(0, 20))
 
         # Word display
         word_frame = ttk.Frame(container)
-        word_frame.pack(pady=(0, 12))
+        word_frame.pack(pady=(0, 18))
        
         self.word_label = ttk.Label(word_frame, text="", style="Word.TLabel")
         self.word_label.pack()
         
         # Student answer
-        ttk.Label(container, text="Type your answer", font=("Segoe UI", 11)).pack(pady=(6, 2))
+        ttk.Label(container, text="Type your answer (optional)", font=("Segoe UI", 11)).pack(pady=(6, 2))
         self.answer_entry = tk.Entry(container, font=("Segoe UI", 14), width=40)
-        self.answer_entry.pack(pady=(0, 14), ipady=6)
+        self.answer_entry.pack(pady=(0, 20), ipady=6)
 
         # Buttons
         btn_frame = ttk.Frame(container)
@@ -86,7 +85,7 @@ class VocabularyApp(tk.Tk):
 
         self.submit_btn = tk.Button(
                 inner, 
-                text="Submit", 
+                text="Show Definition", 
                 font=("Segoe UI", 13, "bold"), 
                 bg="#1f4fd8",        # blue
                 fg="white",
@@ -125,6 +124,13 @@ class VocabularyApp(tk.Tk):
         )
         self.definition_label.pack(pady=(12, 12))
 
+        # status bar
+        status_frame = ttk.Frame(container)
+        status_frame.pack(side="bottom", fill="x", pady=(10, 0))
+
+        self.counter_label = ttk.Label(status_frame, text="")
+        self.counter_label.pack(side="right")
+
         # Allow pressing Enter to submit
         self.bind("<Return>", lambda event: self.submit_answer())
 
@@ -132,7 +138,7 @@ class VocabularyApp(tk.Tk):
         self.definition_label.configure(text=text)
 
     def next_word(self):
-        self._set_definition_text("")
+        self._reset_for_new_word()
 
         line = random.choice(self.lines)
         word, definition = line.split(None, 1)
@@ -153,8 +159,23 @@ class VocabularyApp(tk.Tk):
         # No grading: reveal the correct definition
         self._set_definition_text(self.current_definition)
 
+        # Count this as "attempted" and update UI
+        self.words_attempted += 1
+        self._update_counter()
 
+        # disable the submit button after clicking it
+        self.submit_btn.configure(state="disabled")
 
+    def _update_counter(self):
+        self.counter_label.configure(
+            text=f"{self.words_attempted} words answered out of {self.total_words}"
+        )
+
+    def _reset_for_new_word(self):
+    # Clear definition and re-enable submit button for a new attempt
+        self._set_definition_text("")
+        self.submit_btn.configure(state="normal")
+        self._update_counter()
 
 if __name__ == "__main__":
     lines = load_lines(FILE_PATH)
