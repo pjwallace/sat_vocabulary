@@ -30,16 +30,18 @@ class VocabularyApp(tk.Tk):
         self.minsize(780, 495)
 
         # initialize attributes (instance variables)
-        self.lines = lines
+        self.all_lines = lines[:] # immutable list of words
+        self.remaining_lines = lines[:] # mutable list of words (word removed after it is reviewed)
         self.current_word = ""
         self.current_definition = ""
         self.words_attempted = 0
-        self.total_words = len(self.lines)
+        self.total_words = len(self.all_lines)
+        self.completed = False # will be set to True after all words reviewed
 
-        # create the user interface. Helper method for use inside the class
+        # create the user interface. 
         self._build_ui()
 
-        if not self.lines:
+        if not self.all_lines:
             # Disable controls if we have no data
             self.submit_btn.configure(state="disabled")
             self.next_btn.configure(state="disabled")
@@ -138,9 +140,16 @@ class VocabularyApp(tk.Tk):
         self.definition_label.configure(text=text)
 
     def next_word(self):
-        self._reset_for_new_word()
+        if self.completed:
+            self._reset_word_list()
 
-        line = random.choice(self.lines)
+        self._prepare_ui_for_new_word()
+
+        if not self.remaining_lines:
+            self._reset_deck()
+
+        line = random.choice(self.remaining_lines)
+        self.remaining_lines.remove(line)
         word, definition = line.split(None, 1)
 
         # Your capitalization choice:
@@ -152,7 +161,7 @@ class VocabularyApp(tk.Tk):
 
         self.word_label.configure(text=self.current_word)
         self.answer_entry.delete(0, "end")
-        self._set_definition_text("")  # clear definition until submitted
+        #self._set_definition_text("")  # clear definition until submitted
         self.answer_entry.focus_set()
 
     def submit_answer(self):
@@ -166,16 +175,33 @@ class VocabularyApp(tk.Tk):
         # disable the submit button after clicking it
         self.submit_btn.configure(state="disabled")
 
+        # If that was the last word, notify and reset on next "Next Word"
+        if len(self.remaining_lines) == 0:
+            messagebox.showinfo(
+                "All Done",
+                "Congratulations! You have reviewed all the words.\n\n"
+                "Clicking 'Next Word' will reset the word list and your progress."
+                )
+            self.completed = True
+            self.next_btn.configure(text="Restart")
+
     def _update_counter(self):
         self.counter_label.configure(
             text=f"{self.words_attempted} words answered out of {self.total_words}"
         )
 
-    def _reset_for_new_word(self):
+    def _prepare_ui_for_new_word(self):
     # Clear definition and re-enable submit button for a new attempt
         self._set_definition_text("")
         self.submit_btn.configure(state="normal")
         self._update_counter()
+
+    def _reset_word_list(self):
+        self.remaining_lines = self.all_lines[:]
+        self.words_attempted = 0
+        self.completed = False
+        self.next_btn.configure(text="Next Word")
+
 
 if __name__ == "__main__":
     lines = load_lines(FILE_PATH)
