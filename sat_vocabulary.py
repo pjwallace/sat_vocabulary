@@ -134,7 +134,7 @@ class VocabularyApp(tk.Tk):
         self.counter_label.pack(side="right")
 
         # Allow pressing Enter to submit
-        self.bind("<Return>", lambda event: self.submit_answer())
+        self.bind("<Return>", lambda event: self.submit_btn["state"] == "normal" and self.submit_answer())
 
     def _set_definition_text(self, text):
         self.definition_label.configure(text=text)
@@ -172,8 +172,9 @@ class VocabularyApp(tk.Tk):
         self.words_attempted += 1
         self._update_counter()
 
-        # disable the submit button after clicking it
+        # disable the submit button after clicking it and enable the next word button
         self.submit_btn.configure(state="disabled")
+        self.next_btn.configure(state="normal")
 
         # If that was the last word, notify and reset on next "Next Word"
         if len(self.remaining_lines) == 0:
@@ -194,6 +195,7 @@ class VocabularyApp(tk.Tk):
     # Clear definition and re-enable submit button for a new attempt
         self._set_definition_text("")
         self.submit_btn.configure(state="normal")
+        self.next_btn.configure(state="disabled")
         self._update_counter()
 
     def _reset_word_list(self):
