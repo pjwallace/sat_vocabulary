@@ -1,6 +1,12 @@
 import random 
 import tkinter as tk
 from tkinter import ttk, messagebox
+import json
+import os
+from pathlib import Path
+
+# json file keeps track of user progress through the word deck
+STATE_PATH = Path("vocab_state.json")
 
 FILE_PATH = 'SAT100.txt'
 
@@ -18,6 +24,45 @@ def load_lines(path):
     except Exception as e:
         messagebox.showerror("Error", f"Could not read file:\n{e}")
         return []
+
+def load_state() -> dict | None:
+    '''If a json state file exists, return it as a python dictionary'''
+
+    if not STATE_PATH.exists():
+        return None
+    
+    try:
+        # if the json file exists, return it as a python dictionary
+        with STATE_PATH.open("r", encoding="utf-8") as f:
+            return json.load(f)
+        
+    except (OSError, json.JSONDecodeError):
+        # corrupted file
+        return None
+    
+def save_state(state: dict) -> None:
+    '''After a word has been reviewed, progress is saved in a json file'''
+
+    tmp_path = STATE_PATH.with_suffix(".json.tmp")
+
+    # convert python dictionary into a json string
+    data = json.dumps(state, ensure_ascii=False, indent=2)
+
+    # write to a temp file first, in case the program crashes mid-write
+    with tmp_path.open("w", encoding="utf-8") as f:
+        f.write(data)
+        f.flush()
+        os.fsync(f.fileno())
+
+    # replaces vocab_state.json with the temp file
+    tmp_path.replace(STATE_PATH)
+
+def clear_state() -> None:
+    '''Deletes the state file'''
+    try:
+        STATE_PATH.unlink()
+    except FileNotFoundError:
+        pass
     
 class VocabularyApp(tk.Tk):
     """Builds the application window"""
@@ -31,12 +76,21 @@ class VocabularyApp(tk.Tk):
 
         # initialize attributes (instance variables)
         self.all_lines = lines[:] # immutable list of words
-        self.remaining_lines = lines[:] # mutable list of words (word removed after it is reviewed)
+        # check if a json state file exists
+        state = load_state()
+        if state:
+            self.remaining_lines = state.get("remaining_lines", self.all_lines[:])
+            self.words_attempted = state.get("words_attempted", 0)
+        else:
+            self.remaining_lines = self.all_lines[:] # mutable list of words (word removed after it is reviewed)
+            self.words_attempted = 0
+        
         self.current_word = ""
         self.current_definition = ""
-        self.words_attempted = 0
+        
         self.total_words = len(self.all_lines)
         self.completed = False # will be set to True after all words reviewed
+        self.current_line = None
 
         # create the user interface. 
         self._build_ui()
@@ -149,7 +203,7 @@ class VocabularyApp(tk.Tk):
             self._reset_deck()
 
         line = random.choice(self.remaining_lines)
-        self.remaining_lines.remove(line)
+        self.current_line = line
         word, definition = line.split(None, 1)
 
         # Your capitalization choice:
@@ -172,6 +226,15 @@ class VocabularyApp(tk.Tk):
         self.words_attempted += 1
         self._update_counter()
 
+        # remove the current line from the word list
+        self.remaining_lines.remove(self.current_line)
+
+        # save progress/state
+        save_state({
+            "words_attempted": self.words_attempted,
+            "remaining_lines": self.remaining_lines
+        })
+        
         # disable the submit button after clicking it and enable the next word button
         self.submit_btn.configure(state="disabled")
         self.next_btn.configure(state="normal")
@@ -188,7 +251,7 @@ class VocabularyApp(tk.Tk):
 
     def _update_counter(self):
         self.counter_label.configure(
-            text=f"{self.words_attempted} words answered out of {self.total_words}"
+            text=f"{self.words_attempted} of {self.total_words} words answered"
         )
 
     def _prepare_ui_for_new_word(self):
@@ -199,9 +262,11 @@ class VocabularyApp(tk.Tk):
         self._update_counter()
 
     def _reset_word_list(self):
+        save_state()
         self.remaining_lines = self.all_lines[:]
         self.words_attempted = 0
         self.completed = False
+        self.current_line = None
         self.next_btn.configure(text="Next Word")
 
 
