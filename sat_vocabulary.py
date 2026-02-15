@@ -262,7 +262,6 @@ class VocabularyApp(tk.Tk):
         self._update_counter()
 
     def _reset_word_list(self):
-        save_state()
         self.remaining_lines = self.all_lines[:]
         self.words_attempted = 0
         self.completed = False
